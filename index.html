@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Truco de Elite - Batalhão ROTA</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="game-container">
+        <!-- HUD Superior -->
+        <header>
+            <div class="score-board">
+                <div class="team-score" id="team-us">
+                    <span class="team-label">ROTA</span>
+                    <span class="score-value" id="score-us">00</span>
+                </div>
+                <div class="vs-divider">VS</div>
+                <div class="team-score" id="team-them">
+                    <span class="team-label">OPONENTES</span>
+                    <span class="score-value" id="score-them">00</span>
+                </div>
+            </div>
+            <div class="game-status" id="round-status">DISTRIBUINDO CARTAS...</div>
+        </header>
+
+        <!-- Mesa de Jogo -->
+        <main id="table">
+            <div class="badge-overlay">
+                <img src="assets/badge.png" alt="ROTA Badge" id="table-badge">
+            </div>
+
+            <!-- Jogadores -->
+            <div class="player-slot top" id="p3"> <!-- Parceiro -->
+                <div class="player-info">BATALHÃO (BOT)</div>
+                <div class="card-area"></div>
+            </div>
+            
+            <div class="player-slot right" id="p2"> <!-- Oponente 1 -->
+                <div class="player-info">OPONENTE 1 (BOT)</div>
+                <div class="card-area"></div>
+            </div>
+
+            <div class="player-slot left" id="p4"> <!-- Oponente 2 -->
+                <div class="player-info">OPONENTE 2 (BOT)</div>
+                <div class="card-area"></div>
+            </div>
+
+            <!-- Centro da Mesa (Vira e Cartas Jogadas) -->
+            <div id="center-play-area">
+                <div id="vira-container">
+                    <div class="label">VIRA</div>
+                    <div id="vira-card"></div>
+                </div>
+                <div id="played-cards"></div>
+            </div>
+
+            <div class="player-slot bottom" id="p1"> <!-- Usuário -->
+                <div class="player-info">VOCÊ</div>
+                <div id="my-cards" class="card-area"></div>
+            </div>
+        </main>
+
+        <!-- Controles Inferiores -->
+        <footer>
+            <div id="game-controls">
+                <button id="btn-truco" class="btn-militar">TRUCO</button>
+                <button id="btn-aceitar" class="btn-militar hidden">ACEITAR</button>
+                <button id="btn-correr" class="btn-militar hidden">CORRER</button>
+            </div>
+            <div id="radio-chatter">
+                <span class="radio-label">COMUNICAÇÃO:</span>
+                <span id="radio-text">Aguardando ordens...</span>
+            </div>
+        </footer>
+
+        <!-- Overlays -->
+        <div id="challenge-overlay" class="hidden">
+            <div class="challenge-box">
+                <h2 id="challenge-title">TRUCO!</h2>
+                <div class="challenge-buttons">
+                    <button id="btn-challenge-accept" class="btn-militar">ACEITAR</button>
+                    <button id="btn-challenge-raise" class="btn-militar">PEDIR 6</button>
+                    <button id="btn-challenge-fold" class="btn-militar danger-btn">CORRER</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="overlay" class="hidden">
+            <div class="overlay-content">
+                <h1 id="overlay-title">MISSÃO CUMPRIDA</h1>
+                <p id="overlay-msg">O Batalhão ROTA venceu o confronto.</p>
+                <button id="btn-restart" class="btn-militar">NOVA MISSÃO</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/ai.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
