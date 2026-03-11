@@ -32,14 +32,10 @@ const gameState = {
 };
 
 // UI Elements
-const radioText = document.getElementById('radio-text');
-const roundStatus = document.getElementById('round-status');
-const challengeOverlay = document.getElementById('challenge-overlay');
-const btnTruco = document.getElementById('btn-truco');
-const overlay = document.getElementById('overlay');
+let radioText, roundStatus, challengeOverlay, btnTruco, overlay;
 
 function updateRadio(msg) {
-    radioText.textContent = msg;
+    if (radioText) radioText.textContent = msg;
 }
 
 function updateScore() {
@@ -277,10 +273,28 @@ function endMatch(won) {
     document.getElementById('overlay-msg').textContent = won ? "A ROTA limpou a mesa." : "Os oponentes levaram a melhor.";
 }
 
-btnTruco.onclick = () => { if (!gameState.trucoState.pending && gameState.trucoState.lastChallengerTeam !== 0) askTruco(0); };
-document.getElementById('btn-challenge-accept').onclick = () => handleChallengeResponse('ACCEPT', 0);
-document.getElementById('btn-challenge-fold').onclick = () => handleChallengeResponse('FOLD', 0);
-document.getElementById('btn-challenge-raise').onclick = () => handleChallengeResponse('RAISE', 0);
-document.getElementById('btn-restart').onclick = () => deal();
+// Event Listeners e Inicialização
+document.addEventListener('DOMContentLoaded', () => {
+    radioText = document.getElementById('radio-text');
+    roundStatus = document.getElementById('round-status');
+    challengeOverlay = document.getElementById('challenge-overlay');
+    btnTruco = document.getElementById('btn-truco');
+    overlay = document.getElementById('overlay');
+    const btnRestart = document.getElementById('btn-restart');
 
-window.onload = deal;
+    if (btnTruco) btnTruco.onclick = () => { 
+        if (!gameState.trucoState.pending && gameState.trucoState.lastChallengerTeam !== 0) askTruco(0); 
+    };
+    if (btnRestart) btnRestart.onclick = () => deal();
+    
+    const btnAccept = document.getElementById('btn-challenge-accept');
+    const btnFold = document.getElementById('btn-challenge-fold');
+    const btnRaise = document.getElementById('btn-challenge-raise');
+
+    if (btnAccept) btnAccept.onclick = () => handleChallengeResponse('ACCEPT', 0);
+    if (btnFold) btnFold.onclick = () => handleChallengeResponse('FOLD', 0);
+    if (btnRaise) btnRaise.onclick = () => handleChallengeResponse('RAISE', 0);
+
+    // Começar missão
+    deal();
+});
