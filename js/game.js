@@ -36,6 +36,7 @@ const radioText = document.getElementById('radio-text');
 const roundStatus = document.getElementById('round-status');
 const challengeOverlay = document.getElementById('challenge-overlay');
 const btnTruco = document.getElementById('btn-truco');
+const overlay = document.getElementById('overlay');
 
 function updateRadio(msg) {
     radioText.textContent = msg;
@@ -54,6 +55,12 @@ function initDeck() {
 }
 
 function deal() {
+    // Escondendo overlays
+    overlay.classList.add('hidden');
+    challengeOverlay.classList.add('hidden');
+    gameState.waitingForResponse = false;
+    gameState.gameOver = false;
+
     initDeck();
     // Shuffle
     for (let i = deck.length - 1; i > 0; i--) {
@@ -136,31 +143,144 @@ function playCard(playerIdx, cardIdx) {
     gameState.activePlayer = (gameState.activePlayer + 1) % 4;
     
     if (gameState.playedInRound.length === 4) {
-        evaluateTrick();
+        setTimeout(evaluateTrick, 1000);
     } else {
-        if (gameState.activePlayer !== 0) {
-            setTimeout(() => botPlay(gameState.activePlayer), 800);
-        }
+        if (gameState.activePlayer !== 0) botPlayManager(gameState.activePlayer);
     }
-}
-
-function botPlay(idx) {
-    // Lógica simples do ai.js será chamada aqui
-    const cardIdx = 0; // Por enquanto apenas joga a primeira
-    playCard(idx, cardIdx);
 }
 
 function evaluateTrick() {
-    // Lógica de quem levou a vaza
-    gameState.playedInRound = [];
+    let winner = -1;
+    let maxStr = -1;
+    let empate = false;
+
+    gameState.playedInRound.forEach(p => {
+        const str = getCardStrength(p.card);
+        if (str > maxStr) {
+            maxStr = str;
+            winner = p.player;
+            empate = false;
+        } else if (str === maxStr) {
+            empate = true;
+        }
+    });
+
     document.getElementById('played-cards').innerHTML = '';
     
-    // Próximo turno ou mão
-    gameState.currentTurn++;
-    if (gameState.currentTurn === 3) {
-        // Fim da mão
+    const teamWon = empate ? -1 : (winner % 2); // 0: Us, 1: Them
+    gameState.trickResults.push(teamWon);
+    
+    if (teamWon !== -1) gameState.handWins[teamWon]++;
+
+    if (checkRoundEnd()) return;
+
+    gameState.currentTrick++;
+    gameState.playedInRound = [];
+    gameState.activePlayer = empate ? gameState.turnStarter : winner;
+    
+    if (gameState.activePlayer !== 0) botPlayManager(gameState.activePlayer);
+    else updateRadio("Sua vez na rodada.");
+}
+
+function checkRoundEnd() {
+    const res = gameState.trickResults;
+    let winningTeam = -1;
+
+    if (gameState.handWins[0] === 2) winningTeam = 0;
+    else if (gameState.handWins[1] === 2) winningTeam = 1;
+    else if (res.length === 3) {
+        if (gameState.handWins[0] > gameState.handWins[1]) winningTeam = 0;
+        else if (gameState.handWins[1] > gameState.handWins[0]) winningTeam = 1;
+    }
+    
+    if (res[0] === -1 && res.length === 1) { /* amarrado na primeira */ }
+    else if (res[0] !== -1 && res[1] === -1) { winningTeam = res[0]; }
+    else if (res[0] === -1 && res[1] !== -1) { winningTeam = res[1]; }
+
+    if (winningTeam !== -1) {
+        const pts = gameState.trucoState.value;
+        if (winningTeam === 0) score.teamUs += pts;
+        else score.teamThem += pts;
+        
+        updateScore();
+        if (score.teamUs >= 12 || score.teamThem >= 12) {
+            endMatch(winningTeam === 0);
+        } else {
+            gameState.turnStarter = (gameState.turnStarter + 1) % 4;
+            setTimeout(deal, 1500);
+        }
+        return true;
+    }
+    return false;
+}
+
+function askTruco(playerIdx) {
+    const nextValue = { 1: 3, 3: 6, 6: 9, 9: 12 }[gameState.trucoState.value];
+    gameState.trucoState.pending = true;
+    gameState.trucoState.challenger = playerIdx;
+    gameState.trucoState.lastChallengerTeam = playerIdx % 2;
+
+    updateRadio(`P${playerIdx+1} PEDIU ${nextValue}! QSL?`);
+    
+    if ((playerIdx % 2) === 0) {
+        botPlayManager(1);
+    } else {
+        showChallengeUI(nextValue);
     }
 }
 
-// Iniciar
-window.onload = startMission;
+function showChallengeUI(val) {
+    gameState.waitingForResponse = true;
+    challengeOverlay.classList.remove('hidden');
+    document.getElementById('challenge-title').textContent = val === 3 ? "TRUCO!" : `VEM ${val}!`;
+    const raiseBtn = document.getElementById('btn-challenge-raise');
+    if (val === 12) {
+        raiseBtn.classList.add('hidden');
+    } else {
+        raiseBtn.classList.remove('hidden');
+        raiseBtn.textContent = `PEDIR ${val === 3 ? 6 : val+3}`;
+    }
+}
+
+function handleChallengeResponse(action, responderIdx) {
+    challengeOverlay.classList.add('hidden');
+    gameState.waitingForResponse = false;
+    gameState.trucoState.pending = false;
+
+    if (action === 'ACCEPT') {
+        gameState.trucoState.value = { 1: 3, 3: 6, 6: 9, 9: 12 }[gameState.trucoState.value];
+        updateRoundStatus();
+        updateRadio("Desafio aceito. Prossiga.");
+        if (gameState.activePlayer !== 0) botPlayManager(gameState.activePlayer);
+    } else if (action === 'FOLD') {
+        const winnerTeam = (gameState.trucoState.lastChallengerTeam === 0) ? 0 : 1;
+        updateRadio("Inimigo recuou. Ponto para a ROTA.");
+        score[winnerTeam === 0 ? 'teamUs' : 'teamThem'] += (gameState.trucoState.value === 1 ? 1 : gameState.trucoState.value);
+        updateScore();
+        gameState.turnStarter = (gameState.turnStarter + 1) % 4;
+        setTimeout(deal, 1500);
+    } else if (action === 'RAISE') {
+        gameState.trucoState.value = { 1: 3, 3: 6, 6: 9, 9: 12 }[gameState.trucoState.value];
+        askTruco(responderIdx);
+    }
+}
+
+function updateRoundStatus() {
+    const v = gameState.trucoState.value;
+    roundStatus.textContent = v === 1 ? "PARTIDA NORMAL" : `DESAFIO: ${v} PONTOS`;
+}
+
+function endMatch(won) {
+    gameState.gameOver = true;
+    overlay.classList.remove('hidden');
+    document.getElementById('overlay-title').textContent = won ? "MISSÃO CUMPRIDA" : "BAIXA NO BATALHÃO";
+    document.getElementById('overlay-msg').textContent = won ? "A ROTA limpou a mesa." : "Os oponentes levaram a melhor.";
+}
+
+btnTruco.onclick = () => { if (!gameState.trucoState.pending && gameState.trucoState.lastChallengerTeam !== 0) askTruco(0); };
+document.getElementById('btn-challenge-accept').onclick = () => handleChallengeResponse('ACCEPT', 0);
+document.getElementById('btn-challenge-fold').onclick = () => handleChallengeResponse('FOLD', 0);
+document.getElementById('btn-challenge-raise').onclick = () => handleChallengeResponse('RAISE', 0);
+document.getElementById('btn-restart').onclick = () => deal();
+
+window.onload = deal;

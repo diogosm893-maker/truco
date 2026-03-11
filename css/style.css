@@ -243,7 +243,7 @@ footer {
     box-shadow: 0 0 20px rgba(197, 160, 89, 0.4);
 }
 
-.hidden { display: none; }
+.hidden { display: none !important; }
 
 #radio-chatter {
     background: rgba(0,0,0,0.4);
